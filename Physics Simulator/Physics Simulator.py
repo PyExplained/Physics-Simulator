@@ -8,7 +8,7 @@ earth_mass = 5.98 * 10**2 #24
 
 class Molecule:
     def __init__(self, canvas, x, y, w, h, mass=1, color='blue'):
-        global gravity, earth_mass
+        global gravity, earth_mass, tk
 
         self.canvas = canvas
 
@@ -22,10 +22,10 @@ class Molecule:
         self.h = h
         self.gravity = gravity
         self.em = earth_mass
-        self.mouse = False
         self.mx = 0
         self.my = 0
         self.calc = False
+        self.mouse = False
 
         self.body = self.canvas.create_oval(x-w/2, y-h/2, x+w/2, y+h/2, fill=color)
     def applyForce(self, force):
@@ -34,18 +34,20 @@ class Molecule:
         self.mx = event.x
         self.my = event.y
     def mouse_p(self, event):
+        self.mx = event.x
+        self.my = event.y
         if math.sqrt((event.x - self.cx)**2 + (event.y - self.cy)**2) <= 25:
             self.mouse = True
     def mouse_r(self, event):
         self.mouse = False
     def update(self):
-        global molecules
+        global molecules, running
 
         self.x, self.y, *c = self.canvas.coords(self.body)
         self.cx = (self.x + c[0]) / 2
         self.cy = (self.y + c[1]) / 2
 
-        if not self.mouse:
+        if not self.mouse and running:
             self.acc = np.array([0, 0])
 
             grav = np.array([0, self.gravity * self.em * self.mass / (6.38 * 10**6)])
@@ -55,9 +57,11 @@ class Molecule:
             self.acc = np.multiply(self.acc, np.array([0.9, 0.9]))
 
             self.vel = np.add(self.vel, self.acc)
-        else:
+        elif self.mouse:
             self.vel[0] = self.mx - self.cx
             self.vel[1] = self.my - self.cy
+        else:
+            self.vel = np.array([0, 0])
 
         if not self.calc:
             for m in molecules:
@@ -80,18 +84,41 @@ class Molecule:
                     m.calc = True
 
         if c[1] + self.vel[1] > self.canvas.winfo_height():
-            self.vel[1] *= -0.8
-            self.vel[0] *= 0.9
+            if not self.mouse:
+                self.vel[1] *= -0.8
+                self.vel[0] *= 0.9
             self.canvas.move(self.body, self.vel[0], self.canvas.winfo_height()-c[1])
         if c[0] + self.vel[0] > self.canvas.winfo_width():
-            self.vel[0] *= -0.8
+            if not self.mouse:
+                self.vel[0] *= -0.8
             self.canvas.move(self.body, self.canvas.winfo_width()-c[0], self.vel[1])
-        elif self.x + self.vel[0] < 0:
-            self.vel[0] *= -0.8
+        if self.x + self.vel[0] < 0:
+            if not self.mouse:
+                self.vel[0] *= -0.8
             self.canvas.move(self.body, 0 - self.x, self.vel[1])
         if not c[1] + self.vel[1] > self.canvas.winfo_height() and not c[0] + self.vel[0] > self.canvas.winfo_width() and not self.x + self.vel[0] < 0:
             self.canvas.move(self.body, self.vel[0], self.vel[1])
         self.calc = False
+
+class start_stop_btn:
+    def __init__(self, tk, x, y, image_start, image_stop):
+        self.state = False
+        self.image_start = image_start
+        self.image_stop = image_stop
+        self.bt = Button(tk, image=self.image_start, relief=FLAT, cursor='hand2', command=lambda: self.ch_state(), width=60, height=50)
+        self.bt.place(x=x, y=y, anchor='center')
+    def ch_state(self):
+        global running
+
+        if not self.state:
+            self.bt.config(image=self.image_stop)
+            self.state = True
+            running = True
+        else:
+            self.bt.config(image=self.image_start)
+            self.state = False
+            running = False
+
 
 def mouse_m(event):
     for m in molecules:
@@ -109,10 +136,13 @@ canvas.pack()
 
 import random
 molecules = []
-for _ in range(25):
+for _ in range(5):
     s = random.randint(5,15)
     m = Molecule(canvas, random.randint(0, 700), random.randint(0,700), s, s, mass=s/5, color=random.choice(['red','orange','blue','yellow','green']))
     molecules.append(m)
+
+running = False
+ssb = start_stop_btn(tk, 650, 660, PhotoImage(file='Assets/play_btn.gif'), PhotoImage(file='Assets/stop_btn.gif'))
 
 canvas.bind('<B1-Motion>', mouse_m)
 canvas.bind('<Button-1>', mouse_p)
