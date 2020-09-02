@@ -65,10 +65,7 @@ class Shape:
             if self.check_inside_triangle(point, tri):
                 count += 1
 
-        if count % 2 == 1:
-            return True
-        else:
-            return False
+        return count % 2 == 1
 
     def check_collision(self):
         points = []
@@ -210,16 +207,12 @@ class Shape:
         w1 = (A[0] * s1 + s4 * s2 - P[0] * s1) / (s3 * s2 - (B[0] - A[0]) * s1)
         w2 = (s4 - w1 * s3) / s1
 
-        if w1 >= 0 and w2 >= 0 and w1 + w2 <= 1:
-            return True
-        else:
-            return False
+        return w1 >= 0 and w2 >= 0 and w1 + w2 <= 1
 
     def move(self, x, y):
         self.canvas.move(self.body, x, y)
         self.x += x
         self.y += y
-
 
     def rotate(self):
         self.points = rotate(self.points, self.ang_mom, self.center)
